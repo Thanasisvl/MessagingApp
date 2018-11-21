@@ -1,0 +1,10 @@
+
+public class Moderator extends SuperUser {
+
+	public Moderator() {
+	}
+
+	public Moderator(int userid, String username, String password, String role) {
+		super(userid, username, password, role);
+	}
+}

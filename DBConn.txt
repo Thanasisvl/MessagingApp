@@ -1,0 +1,934 @@
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.Scanner;
+
+public class DBConn {
+
+	static Connection connection;
+	DriverManager dm;
+	Statement stm;
+
+
+	public DBConn() {
+	}
+
+	public java.sql.Connection connect() {
+		try {
+			connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/messagedb?useSSL=false", "user", "test");
+			return connection;
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	public void executeUpdate(String sql) {
+		try {
+			stm = connection.createStatement();
+			stm.executeUpdate(sql);
+			System.out.println("Database update complete.");
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public boolean checkCredentials(String username, String password) {
+		//method for checking if username and password details are correct in database
+		String check = ("SELECT messagedb.users.user_id, messagedb.users.username, AES_DECRYPT(messagedb.users.password, 'key') FROM messagedb.users WHERE username=? and AES_DECRYPT(messagedb.users.password, 'key')=?");
+		PreparedStatement stm;
+		boolean flag = false;
+		try {
+			stm = connection.prepareStatement(check);
+			stm.setString(1, username);
+			stm.setString(2, password);
+			ResultSet rs = stm.executeQuery();
+			if (rs.next()) {
+				flag = true;
+			}
+			else
+				flag = false;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+		return flag;
+	}
+
+	public String checkRole(String username) {
+		String getrole = ("SELECT messagedb.users.role FROM messagedb.users WHERE messagedb.users.username = ?");
+		PreparedStatement stm;
+		String userrole = "";
+		try {
+			connect();
+			stm = connection.prepareStatement(getrole);
+			stm.setString(1, username);
+			ResultSet rs = stm.executeQuery();
+			if (rs.next()) {
+				userrole = rs.getString("role");
+				return userrole;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+		return "Role not found.";
+	}
+
+	public User getUser(String username) {
+		String getuser = ("SELECT * FROM messagedb.users WHERE messagedb.users.username = ?");
+		PreparedStatement stm;
+		try {
+			connect();
+			User user = new User();
+			stm = connection.prepareStatement(getuser);
+			stm.setString(1, username);
+			ResultSet rs = stm.executeQuery();
+			while (rs.next()) {
+				user.setUserid(rs.getInt("user_id"));
+				user.setUsername(rs.getString("username"));
+				user.setPassword(rs.getString("password"));
+				user.setRole(rs.getString("role"));
+				return user;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+		System.out.println("User not found");
+		return null;
+	}
+
+	public SuperUser getSuperUser(String username) {
+		String getSuperuser = ("SELECT * FROM messagedb.users WHERE messagedb.users.username = ?");
+		PreparedStatement stm;
+		try {
+			connect();
+			SuperUser superuser = new SuperUser();
+			stm = connection.prepareStatement(getSuperuser);
+			stm.setString(1, username);
+			ResultSet rs = stm.executeQuery();
+			while (rs.next()) {
+				superuser.setUserid(rs.getInt("user_id"));
+				superuser.setUsername(rs.getString("username"));
+				superuser.setPassword(rs.getString("password"));
+				superuser.setRole(rs.getString("role"));
+				return superuser;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+		System.out.println("Super User not found");
+		return null;
+	}
+
+	public Moderator getModerator(String username) {
+		String getModerator = ("SELECT * FROM messagedb.users WHERE messagedb.users.username = ?");
+		PreparedStatement stm;
+		try {
+			connect();
+			Moderator moderator = new Moderator();
+			stm = connection.prepareStatement(getModerator);
+			stm.setString(1, username);
+			ResultSet rs = stm.executeQuery();
+			while (rs.next()) {
+				moderator.setUserid(rs.getInt("user_id"));
+				moderator.setUsername(rs.getString("username"));
+				moderator.setPassword(rs.getString("password"));
+				moderator.setRole(rs.getString("role"));
+				return moderator;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+		System.out.println("Moderator not found");
+		return null;
+	}
+
+	public Admin getAdmin(String username) {
+		String getAdmin = ("SELECT * FROM messagedb.users WHERE messagedb.users.username = ?");
+		PreparedStatement stm;
+		try {
+			connect();
+			Admin admin = new Admin();
+			stm = connection.prepareStatement(getAdmin);
+			stm.setString(1, username);
+			ResultSet rs = stm.executeQuery();
+			while (rs.next()) {
+				admin.setUserid(rs.getInt("user_id"));
+				admin.setUsername(rs.getString("username"));
+				admin.setPassword(rs.getString("password"));
+				admin.setRole(rs.getString("role"));
+				return admin;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+		System.out.println("User not found");
+		return null;
+	}
+
+	public boolean sendMessage(int senderid) {
+		connect();
+		Message message = new Message();
+		message.setSender(senderid);
+		System.out.println("To whom would you like the message to be sent?");
+		Scanner scan = new Scanner(System.in);
+		String namesearch = scan.next();
+		while(!searchUsername(namesearch)) {
+			System.out.println("User doesnt exist");
+			System.out.println("Select user: ");
+			namesearch=scan.next();
+		}
+		int receiver = searchUserID(namesearch);
+		message.setReceiver(receiver);
+		System.out.println("Please enter your message. Limit 250 characters.");
+		String body = scan.next();
+		body += scan.nextLine();
+		message.setBody(body);
+		while (body.length() > 250) {
+			System.out.println("Message too long. Please try again:\n");
+			body = scan.next();
+			body += scan.nextLine();
+			message.setBody(body);
+		}
+		Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+		message.setTimestamp(timestamp);
+		connect();
+		String query = ("INSERT INTO messagedb.messages (sender, receiver, body, time_sent) VALUES (?, ?, ?, ?)");
+		PreparedStatement stm;
+		try {
+			stm = connection.prepareStatement(query);
+			stm.setInt(1, senderid);
+			stm.setInt(2, receiver);
+			stm.setString(3, body);
+			stm.setTimestamp(4, timestamp);
+			stm.executeUpdate();
+			System.out.println("Message sent!");
+			logFile(getUsernameFromID(senderid), checkRole(getUsernameFromID(senderid)), " sent a message to ", namesearch);
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+		return false;
+	}
+
+	public boolean searchUsername(String username) {
+		connect();
+		String query = ("SELECT * FROM messagedb.users WHERE username= ?");
+		try {
+			PreparedStatement stmt = connection.prepareStatement(query);
+			stmt.setString(1, username);
+			ResultSet rs = stmt.executeQuery();
+
+			if (rs.next()) {
+				return true;
+			} else {
+				return false;
+			}
+		}catch(SQLException e) {
+			System.out.println("search failed " +e.getMessage());
+		} finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+		return false;
+	}
+
+	public boolean searchMessage(int message_id) {
+		connect();
+		String query = ("SELECT * FROM messagedb.messages WHERE message_id= ?");
+		try {
+			PreparedStatement stmt = connection.prepareStatement(query);
+			stmt.setInt(1, message_id);
+			ResultSet rs = stmt.executeQuery();
+
+			if (rs.next()) {
+				return true;
+			} else {
+				return false;
+			}
+		}catch(SQLException e) {
+			System.out.println("search failed " +e.getMessage());
+		} finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+		return false;
+	}
+
+	public int searchUserID(String username) {
+		connect();
+		String idsearch = ("SELECT messagedb.users.user_id FROM messagedb.users WHERE username=?");
+		PreparedStatement stm;
+
+		try {
+			stm = connection.prepareStatement(idsearch);
+			stm.setString(1, username);
+			ResultSet rs = stm.executeQuery();
+			if (rs.next()) {
+				int userid = rs.getInt("user_id");
+				return userid;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+		return -1;
+	}
+
+	public void readInbox(int receiverId) {
+		connect();
+		String query = ("SELECT messagedb.messages.message_id, messagedb.messages.sender, messagedb.messages.body, messagedb.messages.time_sent FROM messagedb.messages WHERE receiver= ?");
+		PreparedStatement stm;
+		try {
+			stm = connection.prepareStatement(query);
+			stm.setInt(1, receiverId);
+			ResultSet rs = stm.executeQuery();
+			Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+			while (rs.next()) {
+				int messageid = rs.getInt("message_id");
+				int senderId = rs.getInt("sender");
+				String body = rs.getString("body");
+				Timestamp time = rs.getTimestamp("time_sent");
+				String sender = getUsernameFromID(senderId);
+				System.out.format("%s, %s, %s, %s\n",messageid, sender, body, time);
+
+			}
+			logFile(getUsernameFromID(receiverId), checkRole(getUsernameFromID(receiverId)), " read his inbox ");
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+	}
+
+	//	public void readInboxAdmin(String username) {
+	//		connect();
+	//		String query = ("SELECT * FROM messagedb.messages");
+	//		PreparedStatement stm;
+	//		try {
+	//			stm = connection.prepareStatement(query);
+	//			ResultSet rs = stm.executeQuery();
+	//			//Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+	//			while (rs.next()) {
+	//				int messageid = rs.getInt("message_id");
+	//				int senderId = rs.getInt("sender");
+	//				int receiverid = rs.getInt("receiver");
+	//				String body = rs.getString("body");
+	//				Timestamp time = rs.getTimestamp("time_sent");
+	//				String sender = getUsernameFromID(senderId);
+	//				String receiver = getUsernameFromID(receiverid);
+	//				System.out.format("%s, %s, %, %s, %s\n",messageid, sender, receiver,  body, time);
+	//				
+	//			}
+	//			//logFile(username, " read his inbox ");
+	//		} catch (SQLException e) {
+	//			e.printStackTrace();
+	//		}finally {
+	//			try {
+	//				connection.close();
+	//			} catch (SQLException e) {e.printStackTrace();}
+	//		}
+	//	}
+
+	public void readOutbox(int senderId) {
+		connect();
+		String query = ("SELECT messagedb.messages.message_id, messagedb.messages.receiver, messagedb.messages.body, messagedb.messages.time_sent FROM messagedb.messages WHERE sender= ?");
+		PreparedStatement stm;
+		try {
+			stm = connection.prepareStatement(query);
+			stm.setInt(1, senderId);
+			ResultSet rs = stm.executeQuery();
+			while (rs.next()) {
+				int messageid = rs.getInt("message_id");
+				int receiverid = rs.getInt("receiver");
+				String body = rs.getString("body");
+				Timestamp time = rs.getTimestamp("time_sent");
+				String receiver = getUsernameFromID(receiverid);
+				System.out.format("%s, %s, %s, %s\n", messageid, receiver, body, time);
+			}
+			logFile(getUsernameFromID(senderId), checkRole(getUsernameFromID(senderId)), " read his outbox ");
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+	}
+
+	public String getUsernameFromID(int userID) {
+		connect();
+		String query = ("SELECT messagedb.users.username FROM messagedb.users WHERE user_id = ?");
+		PreparedStatement stm;
+		String username;
+		try {
+			stm = connection.prepareStatement(query);
+			stm.setInt(1, userID);
+			ResultSet rs = stm.executeQuery();
+			if (rs.next()) {
+				username = rs.getString("username");
+				return username;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+		return "Username not found";
+	}
+
+	public void updateMessage(int userID) {
+		boolean flag = true;
+		while (flag) {
+			System.out.println("Inbox:");
+			readInbox(userID);
+			System.out.println("Outbox:");
+			readOutbox(userID);
+			System.out.println();
+			System.out.println("Please select the message you want to edit.\n");
+			Scanner scan = new Scanner(System.in);
+			String toparseid = scan.next();
+			try {
+				int editmessage = Integer.parseInt(toparseid);
+				if (searchMessage(editmessage)) {
+					connect();
+					String messagequery = ("SELECT messagedb.messages.message_id, messagedb.messages.sender, messagedb.messages.receiver FROM messagedb.messages WHERE messagedb.messages.message_id = ?");
+					PreparedStatement stmmessage;
+					try {
+						stmmessage = connection.prepareStatement(messagequery);
+						stmmessage.setInt(1, editmessage);
+						ResultSet rs = stmmessage.executeQuery();
+						int sid = 0;
+						int rid = 0;
+						while (rs.next()) {
+							int id  = rs.getInt("message_id");
+							sid = rs.getInt("sender");
+							rid = rs.getInt("receiver");
+						}
+						if ((sid == userID) || (rid == userID)) {
+							System.out.println("Please enter the new message.");
+							String newmessage = scan.next();
+							newmessage += scan.nextLine();
+							String query = ("UPDATE messagedb.messages SET body = ? WHERE message_id = ?");
+							PreparedStatement stm;
+							try {
+								stm = connection.prepareStatement(query);
+								stm.setString(1, newmessage);
+								stm.setInt(2, editmessage);
+								stm.executeUpdate();
+								System.out.println("Edit complete.");
+								readOutbox(userID);
+							} catch (SQLException e) {
+								e.printStackTrace();
+							} finally {
+								try {
+									connection.close();
+								} catch (SQLException e) {e.printStackTrace();}
+							}
+							flag = false;
+							logFile(getUsernameFromID(userID), checkRole(getUsernameFromID(userID)), " updated a message to: " + newmessage);
+						}
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+				else {
+					System.out.println("Message does not exist. Please try again.\n");
+				}
+			} catch (NumberFormatException e) {
+			}
+			System.out.println("Invalid input. Please try again.\n");
+		}
+	}
+
+	public void deleteMessage(int userID) {
+		boolean flag = true;
+		while (flag) {
+			System.out.println("Please make a selection:\n"
+					+ "Press 1 to delete a message from inbox.\n"
+					+ "Press 2 to delete a message from outbox.\n");
+			Scanner scan = new Scanner(System.in);
+			int deleteselection = scan.nextInt();
+
+			switch (deleteselection) {
+
+			case 1:
+				readInbox(userID);
+				break;
+
+			case 2:
+				readOutbox(userID);
+				break;
+
+			default:
+				System.out.println("Invalid input. Please try again.\n");
+				break;
+			}
+			System.out.println();
+			System.out.println("Please select the message you want to delete.\n");
+			String toparseid = scan.next();
+			try {
+				int deletemessage = Integer.parseInt(toparseid);
+				if (searchMessage(deletemessage)) {
+					connect();
+					String messagequery = ("SELECT messagedb.messages.message_id, messagedb.messages.sender, messagedb.messages.receiver FROM messagedb.messages WHERE messagedb.messages.message_id = ?");
+					PreparedStatement stmmessage;
+					try {
+						stmmessage = connection.prepareStatement(messagequery);
+						stmmessage.setInt(1, deletemessage);
+						ResultSet rs = stmmessage.executeQuery();
+						int sid = 0;
+						int rid = 0;
+						while (rs.next()) {
+							int id  = rs.getInt("message_id");
+							sid = rs.getInt("sender");
+							rid = rs.getInt("receiver");
+						}
+						if ((sid == userID) || (rid == userID)) {
+							String query = ("DELETE FROM messagedb.messages WHERE message_id = ?");
+							PreparedStatement stm;
+							try {
+								stm = connection.prepareStatement(query);
+								stm.setInt(1, deletemessage);
+								stm.executeUpdate();
+								System.out.println("Delete complete.");
+								if (deleteselection == 1) {
+									readInbox(userID);
+								}
+								else readOutbox(userID);
+							} catch (SQLException e) {
+								e.printStackTrace();
+							} finally {
+								try {
+									connection.close();
+								} catch (SQLException e) {e.printStackTrace();}
+							}
+							flag = false;
+							logFile(getUsernameFromID(userID), checkRole(getUsernameFromID(userID)), " deleted a message ");
+						}
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+				}
+				else {
+					System.out.println("Message does not exist. Please try again.\n");
+				} 
+			} catch (NumberFormatException e) {
+			}
+			System.out.println("Invalid input. Please try again.\n");
+		}
+	}
+
+	public void createUser() {
+
+		boolean flag = true;
+		System.out.println("Enter the username of the user.\n");
+		Scanner scan = new Scanner(System.in);
+		String username = scan.next();
+		while (searchUsername(username)) {
+			System.out.println("Username already exists. Please enter new username.");
+			username = scan.next();
+		}
+		connect();
+		System.out.println("Enter the password for the user. The password has to be at least 4 characters.\n");
+		String password = scan.next();
+		while (password.length() < 4) {
+			System.out.println("Incorrect password. Please try again:\n");
+			password = scan.next();
+		}
+		System.out.println("Enter the role for the user. Role choices are: user, super_user, moderator and admin.\n");
+		String role = scan.next();
+		while (flag) {
+			switch (role) {
+
+			case "user":
+				flag = false;
+				break;
+			case "super_user":
+				flag = false;
+				break;
+			case "moderator":
+				flag = false;
+				break;
+			case "admin":
+				flag = false;
+				break;
+			default:
+				System.out.println("Invalid role. Please try again.\n");
+				role = scan.next();
+				break;
+			}
+		}
+		String query = ("INSERT INTO messagedb.users (username, password, role) VALUES (?, AES_ENCRYPT(?, 'key'), ?)");
+		PreparedStatement stm;
+		try {
+			stm = connection.prepareStatement(query);
+			stm.setString(1, username);
+			stm.setString(2, password);
+			stm.setString(3, role);
+			stm.executeUpdate();
+			System.out.println("User created.");
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+		logFile(username, role, " has been created by admin ");
+	}
+
+	public void printUsers() {
+		connect();
+		String query = ("SELECT * FROM messagedb.users");
+		PreparedStatement stm;
+		try {
+			stm = connection.prepareStatement(query);
+			ResultSet rs = stm.executeQuery();
+			while (rs.next()) {
+				int userid = rs.getInt("user_id");
+				String username = rs.getString("username");
+				String password = rs.getString("password");
+				String roleuser = rs.getString("role");
+				System.out.format("%s, %s, %s, %s\n", userid, username, password, roleuser);
+			}
+			System.out.println();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+	}
+
+	public void updateUser() {
+		boolean flag = true;
+		while (flag) {
+			printUsers();
+			System.out.println("Please select which user you want to update by id.");
+			Scanner scan = new Scanner(System.in);
+			String toparseid = scan.next();
+			try {
+				int userid = Integer.parseInt(toparseid);
+				if (searchUsername(getUsernameFromID(userid))) {
+					System.out.println("Press 1 to edit username.\n"
+							+ "Press 2 to edit password.\n"
+							+ "Press 3 to edit role.\n");
+					connect();
+					int editchoice = scan.nextInt();
+
+					switch (editchoice) {
+
+					case 1:
+						System.out.println("Please enter new username.\n");
+						String newusername = scan.next();
+						String query = ("UPDATE messagedb.users SET username = ? WHERE user_id = ?");
+						PreparedStatement stm;
+						try {
+							stm = connection.prepareStatement(query);
+							stm.setString(1, newusername);
+							stm.setInt(2, userid);
+							stm.executeUpdate();
+							System.out.println("User update complete.\n");
+							printUsers();
+						} catch(SQLException e) {
+							e.printStackTrace();
+						}finally {
+							try {
+								connection.close();
+							} catch (SQLException e) {e.printStackTrace();}
+						}
+						logFile(getUsernameFromID(userid), checkRole(getUsernameFromID(userid)), " has been edited (new username " + newusername);
+						flag = false;
+						break;
+
+					case 2:
+						System.out.println("Please enter new password.\n");
+						String newpassword = scan.next();
+						String query2 = ("UPDATE messagedb.users SET password =  AES_ENCRYPT(?, 'key') WHERE user_id = ?");
+						PreparedStatement stm2;
+						try {
+							stm2 = connection.prepareStatement(query2);
+							stm2.setString(1, newpassword);
+							stm2.setInt(2, userid);
+							stm2.executeUpdate();
+							System.out.println("User update complete.\n");
+							printUsers();
+						} catch(SQLException e) {
+							e.printStackTrace();
+						}finally {
+							try {
+								connection.close();
+							} catch (SQLException e) {e.printStackTrace();}
+						}
+						logFile(getUsernameFromID(userid), checkRole(getUsernameFromID(userid)), " password has been changed ");
+						flag = false;
+						break;
+
+					case 3:
+
+						boolean flag2 = true;
+						while (flag2) {
+							System.out.println("Please enter new role.\n");
+							String newrole = scan.next();
+
+							switch (newrole) {
+
+							case "user":
+								flag2 = false;
+								String query3 = ("UPDATE messagedb.users SET role = ? WHERE user_id = ?");
+								PreparedStatement stm3;
+								try {
+									stm3 = connection.prepareStatement(query3);
+									stm3.setString(1, newrole);
+									stm3.setInt(2, userid);
+									stm3.executeUpdate();
+									System.out.println("User update complete.\n");
+									printUsers();
+								} catch(SQLException e) {
+									e.printStackTrace();
+								}finally {
+									try {
+										connection.close();
+									} catch (SQLException e) {e.printStackTrace();}
+								}
+								logFile(getUsernameFromID(userid), checkRole(getUsernameFromID(userid)), " role has been changed ");
+								flag = false;
+								break;
+							case "super_user":
+								flag2 = false;
+								String query4 = ("UPDATE messagedb.users SET role = ? WHERE user_id = ?");
+								PreparedStatement stm4;
+								try {
+									stm4 = connection.prepareStatement(query4);
+									stm4.setString(1, newrole);
+									stm4.setInt(2, userid);
+									stm4.executeUpdate();
+									System.out.println("User update complete.\n");
+									printUsers();
+								} catch(SQLException e) {
+									e.printStackTrace();
+								}finally {
+									try {
+										connection.close();
+									} catch (SQLException e) {e.printStackTrace();}
+								}
+								logFile(getUsernameFromID(userid), checkRole(getUsernameFromID(userid)), " role has been changed ");
+								flag = false;
+								break;
+							case "moderator":
+								flag2 = false;
+								String query5 = ("UPDATE messagedb.users SET role = ? WHERE user_id = ?");
+								PreparedStatement stm5;
+								try {
+									stm5 = connection.prepareStatement(query5);
+									stm5.setString(1, newrole);
+									stm5.setInt(2, userid);
+									stm5.executeUpdate();
+									System.out.println("User update complete.\n");
+									printUsers();
+								} catch(SQLException e) {
+									e.printStackTrace();
+								}finally {
+									try {
+										connection.close();
+									} catch (SQLException e) {e.printStackTrace();}
+								}
+								logFile(getUsernameFromID(userid), checkRole(getUsernameFromID(userid)), " role has been changed ");
+								flag = false;
+								break;
+							case "admin":
+								flag2 = false;
+								String query6 = ("UPDATE messagedb.users SET role = ? WHERE user_id = ?");
+								PreparedStatement stm6;
+								try {
+									stm6 = connection.prepareStatement(query6);
+									stm6.setString(1, newrole);
+									stm6.setInt(2, userid);
+									stm6.executeUpdate();
+									System.out.println("User update complete.\n");
+									printUsers();
+								} catch(SQLException e) {
+									e.printStackTrace();
+								}finally {
+									try {
+										connection.close();
+									} catch (SQLException e) {e.printStackTrace();}
+								}
+								logFile(getUsernameFromID(userid), checkRole(getUsernameFromID(userid)), " role has been changed ");
+								flag = false;
+								break;
+							default:
+								System.out.println("Invalid role. Please try again.\n");
+								break;
+							}
+
+							
+						}
+					}
+				}
+				else {
+					System.out.println("User does not exist. Please try again.\n");
+				}
+			} catch (NumberFormatException e) {
+			}
+			//System.out.println("Invalid input. Please try again.\n");
+		}
+	}
+
+	public void deleteUser() {
+		boolean flag = true;
+		while (flag) {
+			System.out.println("Please select user to delete by id.\n");
+			printUsers();
+			Scanner scan = new Scanner(System.in);
+			String toparseid = scan.next();
+			try {
+				int userdelete = Integer.parseInt(toparseid);
+				if (searchUsername(getUsernameFromID(userdelete))) {
+					System.out.println();
+					connect();
+					String query = ("DELETE FROM messagedb.users WHERE user_id = ?");
+					PreparedStatement stm;
+					try {
+						stm = connection.prepareStatement(query);
+						stm.setInt(1, userdelete);
+						stm.executeUpdate();
+						System.out.println("Delete complete.");
+						printUsers();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					} finally {
+						try {
+							connection.close();
+						} catch (SQLException e) {e.printStackTrace();}
+					}
+					logFile(getUsernameFromID(userdelete), checkRole(getUsernameFromID(userdelete)), " has been deleted by admin ");
+					flag = false;
+				}
+				else {
+					clearConsole();
+					System.out.println("The user does not exist. Please try again.\n");
+				}
+			} catch (NumberFormatException e) {
+				clearConsole();
+				System.out.println("Invalid input. Please try again.\n");
+			}
+		}
+	}
+
+	public void printAdminUsers() {
+		connect();
+		String query = ("SELECT messagedb.users.user_id, messagedb.users.username, AES_DECRYPT(messagedb.users.password, 'key'), messagedb.users.role FROM messagedb.users");
+		PreparedStatement stm;
+		try {
+			stm = connection.prepareStatement(query);
+			ResultSet rs = stm.executeQuery();
+			while (rs.next()) {
+				int userid = rs.getInt("user_id");
+				String username = rs.getString("username");
+				String password = rs.getString("AES_DECRYPT(messagedb.users.password, 'key')");
+				String roleuser = rs.getString("role");
+				System.out.format("%s, %s, %s, %s\n", userid, username, password, roleuser);
+			}
+			System.out.println();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				connection.close();
+			} catch (SQLException e) {e.printStackTrace();}
+		}
+	}
+
+	public void clearConsole() {
+		try {
+			new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
+		} catch (InterruptedException | IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void logFile(String username, String role, String action, String target) {
+		try (
+				FileWriter fw = new FileWriter(username + ".txt", true);
+				BufferedWriter bw = new BufferedWriter(fw);
+				PrintWriter out = new PrintWriter(bw)) {
+			Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+			out.println(role + " " + username + action + target + timestamp + ".");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void logFile(String username, String role, String action) {
+		try (
+				FileWriter fw = new FileWriter(username + ".txt", true);
+				BufferedWriter bw = new BufferedWriter(fw);
+				PrintWriter out = new PrintWriter(bw)) {
+			Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+			out.println(role + " " + username + action + timestamp + ".");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void logFile(String username, String action) {
+		try (
+				FileWriter fw = new FileWriter(username + ".txt", true);
+				BufferedWriter bw = new BufferedWriter(fw);
+				PrintWriter out = new PrintWriter(bw)) {
+			Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+			out.println(username + action + timestamp + ".");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+}

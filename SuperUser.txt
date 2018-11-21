@@ -1,0 +1,11 @@
+
+public class SuperUser extends User {
+
+	public SuperUser() {
+	}
+
+	public SuperUser(int userid, String username, String password, String role) {
+		super(userid, username, password, role);
+	}
+
+}

@@ -1,0 +1,308 @@
+
+import java.util.Scanner;
+
+public class Login {
+	DBConn db = new DBConn();
+
+	public void logIn() {
+
+		boolean flag = true;
+		while (flag) {
+			db.connect();
+			System.out.println("Welcome to Basic Messaging App.\n"
+					+ "Please enter username.");
+			Scanner scan = new Scanner(System.in);
+			String username = scan.next();
+			//		System.out.println("Please enter password.");
+			//		String password = scan.next();
+			String password = PasswordField.readPassword("Please enter your password.\n");
+			if (db.checkCredentials(username, password)) {
+				System.out.println("Login succesfull.\n");
+				flag = false;
+				String role = db.checkRole(username); //check the role of the user via username
+
+				switch (role) {
+
+				case "user":
+					UserMenu(username);
+					break;
+
+				case "super_user":
+					superUserMenu(username);
+					break;
+
+				case "moderator":
+					moderatorMenu(username);
+					break;
+
+				case "admin":
+					adminMenu(username);
+					break;
+
+				default:
+					System.out.println("Role not found, try again.");
+					break;
+				}
+			}
+			else {
+				System.out.println("Login attempt failed!\n");
+			}
+
+		}
+	}
+
+	public void UserMenu(String username) {
+
+		boolean flag = true;
+
+		while (flag) {
+			db.connect();
+			User user = db.getUser(username); //create a user object
+			System.out.println("Welcome user: " + username + ".");
+			System.out.println("Please select your action.");
+			System.out.println("Press 1 to send a message.\n"
+					+ "Press 2 to view your inbox.\n"
+					+ "Press 3 to view your outbox.\n"
+					+ "Press 4 to exit app.\n"
+					+ "Press 5 to log out.\n");
+			Scanner scan = new Scanner(System.in);
+			String userinput = scan.next();
+
+			switch (userinput) {
+
+			case "1":
+				db.sendMessage(user.getUserid()); //get user id from user object
+				break;
+
+			case "2":
+				db.clearConsole();
+				db.readInbox(user.getUserid());
+				break;
+
+			case "3":
+				db.clearConsole();
+				db.readOutbox(user.getUserid());
+				break;
+
+			case "4":
+				flag = false;
+				break;
+
+			case "5":
+				db.clearConsole();
+				logIn();
+				break;
+
+			default:
+				db.clearConsole();
+				System.out.println("Invalid input.\n");
+				break;
+			}
+		}
+	}
+
+	public void superUserMenu(String username) {
+
+		boolean flag = true;
+
+		while (flag) {
+			db.connect();
+			SuperUser superuser = db.getSuperUser(username);
+			System.out.println("Welcome user: " + username + ".");
+			System.out.println("Please select your action.");
+			System.out.println("Press 1 to send a message.\n"
+					+ "Press 2 to view your inbox.\n"
+					+ "Press 3 to view your outbox.\n"
+					+ "Press 4 to update a message.\n"
+					+ "Press 5 to exit app.\n"
+					+ "Press 6 to log out.\n");
+			Scanner scan = new Scanner(System.in);
+			String userinput = scan.next();
+			System.out.println();
+
+			switch (userinput) {
+
+			case "1":
+				db.sendMessage(superuser.getUserid());
+				break;
+
+			case "2":
+				db.clearConsole();
+				db.readInbox(superuser.getUserid());
+				break;
+
+			case "3":
+				db.clearConsole();
+				db.readOutbox(superuser.getUserid());
+				break;
+
+			case "4":
+				db.clearConsole();
+				db.updateMessage(superuser.getUserid());
+				break;
+
+			case "5":
+				flag = false;
+				break;
+
+			case "6":
+				db.clearConsole();
+				logIn();
+				break;
+
+			default:
+				db.clearConsole();
+				System.out.println("Invalid input.\n");
+				break;
+			}
+		}
+	}
+
+	public void moderatorMenu(String username) {
+
+		boolean flag = true;
+
+		while (flag) {
+			db.connect();
+			Moderator moderator = db.getModerator(username);
+			System.out.println("Welcome user: " + username + ".");
+			System.out.println("Please select your action.");
+			System.out.println("Press 1 to send a message.\n"
+					+ "Press 2 to view your inbox.\n"
+					+ "Press 3 to view your outbox.\n"
+					+ "Press 4 to update a message.\n"
+					+ "Press 5 to delete a message.\n"
+					+ "Press 6 to exit app.\n"
+					+ "Press 7 to log out.\n");
+			Scanner scan = new Scanner(System.in);
+			String userinput = scan.next();
+			System.out.println();
+
+			switch (userinput) {
+
+			case "1":
+				db.sendMessage(moderator.getUserid());
+				break;
+
+			case "2":
+				db.clearConsole();
+				db.readInbox(moderator.getUserid());
+				break;
+
+			case "3":
+				db.clearConsole();
+				db.readOutbox(moderator.getUserid());
+				break;
+
+			case "4":
+				db.clearConsole();
+				db.updateMessage(moderator.getUserid());
+				break;
+
+			case "5":
+				db.clearConsole();
+				db.deleteMessage(moderator.getUserid());
+				break;	
+
+			case "6":
+				flag = false;
+				break;
+
+			case "7":
+				db.clearConsole();
+				logIn();
+				break;
+
+			default:
+				db.clearConsole();
+				System.out.println("Invalid input.\n");
+				break;
+			}
+		}
+	}
+
+	public void adminMenu(String username) {
+
+		boolean flag = true;
+
+		while (flag) {
+			db.connect();
+			Admin admin = db.getAdmin(username);
+			System.out.println("Welcome user: " + username + ".");
+			System.out.println("Please select your action.");
+			System.out.println("Press 1 to send a message.\n"
+					+ "Press 2 to view your inbox.\n"
+					+ "Press 3 to view your outbox.\n"
+					+ "Press 4 to update a message.\n"
+					+ "Press 5 to delete a message.\n"
+					+ "Press 6 to create user.\n"
+					+ "Press 7 to view all users.\n"
+					+ "Press 8 to update user.\n"
+					+ "Press 9 to delete user.\n"
+					+ "Press 10 to exit app.\n"
+					+ "Press 11 to log out.\n");
+			Scanner scan = new Scanner(System.in);
+			String userinput = scan.next();
+
+			switch (userinput) {
+
+			case "1":
+				db.sendMessage(admin.getUserid());
+				break;
+
+			case "2":
+				db.clearConsole();
+				db.readInbox(admin.getUserid());
+				break;
+
+			case "3":
+				db.clearConsole();
+				db.readOutbox(admin.getUserid());
+				break;
+
+			case "4":
+				db.clearConsole();
+				db.updateMessage(admin.getUserid());
+				break;
+
+			case "5":
+				db.clearConsole();
+				db.deleteMessage(admin.getUserid());
+
+			case "6":
+				db.clearConsole();
+				db.createUser();
+				break;
+
+			case "7":
+				db.clearConsole();
+				db.printAdminUsers();
+				break;
+
+			case "8":
+				db.clearConsole();
+				db.updateUser();
+				break;
+
+			case "9":
+				db.clearConsole();
+				db.deleteUser();
+				break;
+
+			case "10":
+				flag = false;
+				break;
+
+			case "11":
+				db.clearConsole();
+				logIn();
+				break;
+
+			default:
+				db.clearConsole();
+				System.out.println("Invalid input.\n");
+				break;
+			}
+		}
+	}
+}

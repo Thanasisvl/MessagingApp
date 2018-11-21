@@ -1,0 +1,12 @@
+
+public class Admin extends Moderator {
+
+	public Admin() {
+	}
+
+	public Admin(int userid, String username, String password, String role) {
+		super(userid, username, password, role);
+	}
+
+	
+}

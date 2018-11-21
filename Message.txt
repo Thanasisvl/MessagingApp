@@ -1,0 +1,55 @@
+
+import java.sql.Timestamp;
+
+public class Message {
+	
+	int sender;
+	int receiver;
+	String body;
+	Timestamp timestamp;
+	
+	public Message() {}
+	
+	public Message(int sender, int receiver, String body, Timestamp timestamp) {
+		this.sender = sender;
+		this.receiver = receiver;
+		this.body = body;
+		this.timestamp = timestamp;
+	}
+
+	public int getSender() {
+		return sender;
+	}
+
+	public void setSender(int sender) {
+		this.sender = sender;
+	}
+
+	public int getReceiver() {
+		return receiver;
+	}
+
+	public void setReceiver(int receiver) {
+		this.receiver = receiver;
+	}
+
+	public String getBody() {
+		return body;
+	}
+
+	public void setBody(String body) {
+		this.body = body;
+	}
+
+	public Timestamp getTimestamp() {
+		return timestamp;
+	}
+
+	public void setTimestamp(Timestamp timestamp) {
+		this.timestamp = timestamp;
+	}
+	
+	
+
+	
+}
